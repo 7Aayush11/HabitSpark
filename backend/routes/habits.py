@@ -36,8 +36,29 @@ def get_habits():
         'description': habit.description,
         'frequency': habit.frequency,
         'aura_points': habit.aura_points,
-        'created_at': habit.created_at.isoformat()
+        'created_at': habit.created_at.isoformat(),
+        'completion_count': len(habit.completions),
+        'total_aura_points': len(habit.completions) * habit.aura_points
     } for habit in habits]), 200
+
+@habits_bp.route('/habits/<int:habit_id>', methods=['PUT'])
+@jwt_required()
+def update_habit(habit_id):
+    user_id = get_jwt_identity()
+    habit = Habit.query.filter_by(id=habit_id, user_id=user_id).first()
+    
+    if not habit:
+        return jsonify({"error": "Habit not found"}), 404
+    
+    data = request.get_json()
+    habit.name = data['name']
+    habit.description = data.get('description', '')
+    habit.frequency = data['frequency']
+    habit.aura_points = data.get('aura_points', 1)
+    
+    db.session.commit()
+    
+    return jsonify({"message": "Habit updated successfully"}), 200
 
 @habits_bp.route('/habits/<int:habit_id>/complete', methods=['POST'])
 @jwt_required()
@@ -52,4 +73,11 @@ def complete_habit(habit_id):
     db.session.add(completion)
     db.session.commit()
     
-    return jsonify({"message": "Habit marked as complete"}), 200
+    total_completions = len(habit.completions)
+    total_aura_points = total_completions * habit.aura_points
+    
+    return jsonify({
+        "message": "Habit marked as complete",
+        "completion_count": total_completions,
+        "total_aura_points": total_aura_points
+    }), 200

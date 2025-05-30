@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Form, Button, Alert } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createHabit, getHabits } from '../services/api';
+import { createHabit, updateHabit, getHabits } from '../services/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const HabitForm = () => {
@@ -59,10 +59,14 @@ const HabitForm = () => {
     e.preventDefault();
     
     try {
-      await createHabit(formData);
+      if (isEditing) {
+        await updateHabit(id, formData);
+      } else {
+        await createHabit(formData);
+      }
       navigate('/habits');
     } catch (err) {
-      setError('Failed to save habit');
+      setError(isEditing ? 'Failed to update habit' : 'Failed to create habit');
     }
   };
 
@@ -151,4 +155,4 @@ const HabitForm = () => {
   );
 };
 
-export default HabitForm; 
+export default HabitForm;

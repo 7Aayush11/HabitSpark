@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token
+from werkzeug.security import check_password_hash  # Added missing import
 from models.user import User, db
 
 auth_bp = Blueprint('auth', __name__)
@@ -15,7 +16,7 @@ def register():
         username=data['username'],
         email=data['email']
     )
-    user.set_password(data['password'])
+    user.set_password(data['password'])  # Ensure this method hashes the password
     
     db.session.add(user)
     db.session.commit()
@@ -27,8 +28,17 @@ def login():
     data = request.get_json()
     user = User.query.filter_by(email=data['email']).first()
     
-    if user and user.check_password(data['password']):
-        access_token = create_access_token(identity=user.id)
-        return jsonify({"access_token": access_token}), 200
-        
-    return jsonify({"error": "Invalid credentials"}), 401
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    if not user.check_password(data['password']):  # Changed to use User's method
+        return jsonify({"error": "Invalid password"}), 401
+    
+    print(f"User ID: {user.id}, Type: {type(user.id)}")  # Debug
+    
+    try:
+        access_token = create_access_token(identity=str(user.id))
+        return jsonify(access_token=access_token), 200
+    except Exception as e:
+        print(f"Token generation error: {e}")  # Debug
+        return jsonify({"error": "Token generation failed"}), 500

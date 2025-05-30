@@ -26,6 +26,7 @@ export const login = (credentials) => api.post('/auth/login', credentials);
 // Habits API calls
 export const getHabits = () => api.get('/habits');
 export const createHabit = (habitData) => api.post('/habits', habitData);
+export const updateHabit = (habitId, habitData) => api.put(`/habits/${habitId}`, habitData);
 export const completeHabit = (habitId) => api.post(`/habits/${habitId}/complete`);
 
-export default api; 
+export default api;
