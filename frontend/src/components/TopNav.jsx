@@ -14,6 +14,8 @@ export default function TopNav() {
       <Link to="/dashboard" className="text-aura font-bold text-2xl hover:opacity-90">
         HabitSpark
       </Link>
+      <Link to="/checkin" className="hover:text-aura transition">Check In</Link>
+
 
       {/* Right-side Links */}
       <div className="flex items-center gap-6 text-sm font-medium">

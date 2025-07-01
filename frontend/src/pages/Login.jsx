@@ -1,69 +1,87 @@
+// src/pages/Login.jsx
 import { useState } from 'react';
-import axios from '../api/axios';
 import { useNavigate } from 'react-router-dom';
-import TopNav from '../components/TopNav';
 import toast from 'react-hot-toast';
-
+import { motion } from 'framer-motion';
+import axios from '../api/axios';
+import AppLayout from '../components/layouts/AppLayout';
 
 export default function Login() {
-  const [form, setForm] = useState({ username: '', password: '' });
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({ username: '', password: '' });
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      const res = await axios.post('/auth/login', form);
-      localStorage.setItem('access_token', res.data.access_token);
+      const res = await axios.post('/auth/login', formData);
+      localStorage.setItem('token', res.data.access_token);
+      toast.success('Login successful');
       navigate('/dashboard');
-      toast.success('Log in succesfully')
     } catch (err) {
-      toast.error('Login failed');
+      console.error(err);
+      toast.error('Invalid credentials');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <>
-    <TopNav />
-    <div className="min-h-screen flex items-center justify-center bg-dark text-white px-4">
-      <form onSubmit={handleSubmit} className="bg-card rounded-xl p-8 w-full max-w-md shadow-lg">
-        <h2 className="text-2xl font-bold text-center mb-6 text-aura">Login to HabitSpark</h2>
+    <AppLayout>
+    <motion.div
+      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-purple-950"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.6 }}
+    >
+      <motion.div
+        className="bg-black/40 border border-purple-700 p-8 rounded-xl shadow-lg backdrop-blur-lg max-w-sm w-full text-purple-100"
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 0.4 }}
+      >
+        <h1 className="text-3xl font-bold mb-6 text-center text-purple-300 glow">Welcome Back</h1>
 
-        <div className="mb-4">
-          <label className="block mb-1 text-sm">Username</label>
-          <input
-            name="username"
-            type="text"
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-2 rounded bg-dark border border-gray-700 focus:outline-none focus:ring-2 focus:ring-aura"
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block mb-1">Username</label>
+            <input
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 rounded bg-black/60 border border-purple-500 text-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-700"
+            />
+          </div>
 
-        <div className="mb-6">
-          <label className="block mb-1 text-sm">Password</label>
-          <input
-            name="password"
-            type="password"
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-2 rounded bg-dark border border-gray-700 focus:outline-none focus:ring-2 focus:ring-aura"
-          />
-        </div>
+          <div>
+            <label className="block mb-1">Password</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 rounded bg-black/60 border border-purple-500 text-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-700"
+            />
+          </div>
 
-        <button
-          type="submit"
-          className="w-full bg-aura hover:bg-purple-600 text-white font-semibold py-2 rounded transition"
-        >
-          Login
-        </button>
-
-        <p className="text-center text-sm text-gray-400 mt-4">
-          Don’t have an account? <a href="/register" className="text-aura hover:underline">Register</a>
-        </p>
-      </form>
-    </div>
-    </>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-purple-700 hover:bg-purple-800 text-white font-semibold py-2 rounded transition shadow-lg"
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+      </motion.div>
+    </motion.div>
+    </AppLayout>
   );
 }
