@@ -23,6 +23,9 @@ model Habit {
   id        String   @id @default(uuid())
   title     String
   frequency String
+  category  String   @default("General")
+  goal      Int?     // Target completion rate (e.g., 80 for 80%)
+  goalPeriod String  @default("Weekly") // Daily, Weekly, Monthly
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   checkins  Checkin[]

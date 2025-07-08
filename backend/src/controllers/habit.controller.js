@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 export const createHabit = async (req, res) => {
   try {
-    const { title, frequency } = req.body;
+    const { title, frequency, category, goal, goalPeriod } = req.body;
     if (!title || !frequency) {
       return res.status(400).json({ error: 'Title and frequency are required.' });
     }
@@ -16,6 +16,9 @@ export const createHabit = async (req, res) => {
       data: {
         title,
         frequency,
+        category: category || 'General',
+        goal: goal ? parseInt(goal) : null,
+        goalPeriod: goalPeriod || 'Weekly',
         userId: req.userId,
       },
     });
@@ -45,7 +48,7 @@ export const getHabits = async (req, res) => {
       orderBy: { createdAt: 'desc' },
       include: { checkins: true },
     });
-    // Calculate streak for each habit
+    
     const today = new Date();
     const habitsWithStreak = habits.map(habit => {
       let streak = 0;
@@ -55,7 +58,32 @@ export const getHabits = async (req, res) => {
         streak++;
         day = subDays(day, 1);
       }
-      return { ...habit, streak };
+
+      // Calculate goal progress
+      let goalProgress = null;
+      if (habit.goal) {
+        const periodStart = habit.goalPeriod === 'Daily' ? startOfDay(today) :
+                           habit.goalPeriod === 'Weekly' ? startOfDay(subDays(today, 7)) :
+                           startOfDay(subDays(today, 30));
+        
+        const periodCheckins = habit.checkins.filter(c => 
+          new Date(c.date) >= periodStart
+        ).length;
+        
+        const totalDays = habit.goalPeriod === 'Daily' ? 1 :
+                         habit.goalPeriod === 'Weekly' ? 7 : 30;
+        
+        const completionRate = (periodCheckins / totalDays) * 100;
+        goalProgress = {
+          current: Math.round(completionRate),
+          target: habit.goal,
+          achieved: completionRate >= habit.goal,
+          periodCheckins,
+          totalDays
+        };
+      }
+
+      return { ...habit, streak, goalProgress };
     });
     res.json(habitsWithStreak);
   } catch (err) {
@@ -66,11 +94,11 @@ export const getHabits = async (req, res) => {
 export const updateHabit = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, frequency } = req.body;
+    const { title, frequency, category, goal, goalPeriod } = req.body;
 
     const habit = await prisma.habit.update({
       where: { id },
-      data: { title, frequency },
+      data: { title, frequency, category, goal: goal ? parseInt(goal) : null, goalPeriod },
     });
 
     res.json(habit);
@@ -145,11 +173,35 @@ export const getAnalytics = async (req, res) => {
     let longestStreak = 0;
     let mostConsistentHabit = null;
     let maxStreak = 0;
+    let goalsAchieved = 0;
     const today = new Date();
     const checkinsPerHabit = habits.map(habit => ({
       title: habit.title,
       count: habit.checkins.length,
     }));
+    
+    // Category-based analytics
+    const habitsByCategory = {};
+    habits.forEach(habit => {
+      if (!habitsByCategory[habit.category]) {
+        habitsByCategory[habit.category] = {
+          count: 0,
+          checkins: 0,
+          habits: []
+        };
+      }
+      habitsByCategory[habit.category].count++;
+      habitsByCategory[habit.category].checkins += habit.checkins.length;
+      habitsByCategory[habit.category].habits.push(habit.title);
+    });
+    
+    const categoryStats = Object.entries(habitsByCategory).map(([category, data]) => ({
+      category,
+      habitCount: data.count,
+      totalCheckins: data.checkins,
+      habits: data.habits
+    }));
+    
     // Flatten all checkins for all habits
     const allCheckins = habits.flatMap(habit => habit.checkins.map(c => new Date(c.date)));
     // Group checkins by day
@@ -174,14 +226,35 @@ export const getAnalytics = async (req, res) => {
         maxStreak = streak;
         mostConsistentHabit = habit.title;
       }
+      
+      // Check if goal is achieved
+      if (habit.goal) {
+        const periodStart = habit.goalPeriod === 'Daily' ? startOfDay(today) :
+                           habit.goalPeriod === 'Weekly' ? startOfDay(subDays(today, 7)) :
+                           startOfDay(subDays(today, 30));
+        
+        const periodCheckins = habit.checkins.filter(c => 
+          new Date(c.date) >= periodStart
+        ).length;
+        
+        const totalDays = habit.goalPeriod === 'Daily' ? 1 :
+                         habit.goalPeriod === 'Weekly' ? 7 : 30;
+        
+        const completionRate = (periodCheckins / totalDays) * 100;
+        if (completionRate >= habit.goal) {
+          goalsAchieved++;
+        }
+      }
     });
     res.json({
       totalHabits,
       totalCheckins,
       longestStreak,
       mostConsistentHabit: mostConsistentHabit || '',
+      goalsAchieved,
       checkinsPerHabit,
       checkinsPerDay,
+      categoryStats,
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch analytics' });
@@ -212,5 +285,25 @@ export const updateUserProfile = async (req, res) => {
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+};
+
+export const getCategories = async (req, res) => {
+  try {
+    const categories = [
+      'General',
+      'Health',
+      'Fitness',
+      'Learning',
+      'Productivity',
+      'Mindfulness',
+      'Social',
+      'Creative',
+      'Financial',
+      'Career'
+    ];
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch categories' });
   }
 };

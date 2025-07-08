@@ -83,7 +83,7 @@ const ProfilePanel = ({ open, onClose, user, onProfileUpdate }) => {
           </div>
           <div className="text-lg font-heading text-primary text-center mb-2">{user.email}</div>
           <div className="text-md text-aura text-center mb-2">Aura Points: <span className="font-bold">{user.auraPoints}</span></div>
-          <div className="text-xs text-shadow text-center mb-4">Joined: {new Date(user.createdAt).toLocaleDateString()}</div>
+          <div className="text-xs text-gray-400 text-center mb-4 opacity-70">Joined: {new Date(user.createdAt).toLocaleDateString()}</div>
           <form onSubmit={handleSubmit} className="flex flex-col gap-3 mb-4">
             <input
               type="text"

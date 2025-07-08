@@ -6,6 +6,7 @@ import AnalyticsPanel from './AnalyticsPanel';
 import axios from 'axios';
 import ProfileCard from './ProfileCard';
 import ProfilePanel from './ProfilePanel';
+import CalendarPanel from './CalendarPanel';
 
 function Dashboard({ onLogout }) {
   const [user, setUser] = useState(null);
@@ -14,6 +15,7 @@ function Dashboard({ onLogout }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -57,8 +59,17 @@ function Dashboard({ onLogout }) {
       >
         Analytics
       </button>
+      {/* Calendar Tab/Button */}
+      <button
+        className="fixed top-[60%] right-0 z-40 px-4 py-2 rounded-l-lg bg-aura text-white font-heading shadow-neon hover:bg-accent transition transform -translate-y-1/2"
+        onClick={() => setCalendarOpen(true)}
+      >
+        Calendar
+      </button>
       {/* Analytics Panel */}
       <AnalyticsPanel open={analyticsOpen} onClose={() => setAnalyticsOpen(false)} />
+      {/* Calendar Panel */}
+      <CalendarPanel open={calendarOpen} onClose={() => setCalendarOpen(false)} />
       {/* Profile Panel */}
       <ProfilePanel open={profileOpen} onClose={() => setProfileOpen(false)} user={user} onProfileUpdate={setUser} />
       <div className="flex w-full max-w-6xl gap-8 items-center justify-center">

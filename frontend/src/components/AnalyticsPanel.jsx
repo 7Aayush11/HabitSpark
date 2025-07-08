@@ -2,6 +2,23 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Bar, Line } from 'react-chartjs-2';
+
+// Category color mapping (same as HabitItem)
+const getCategoryColor = (category) => {
+  const colors = {
+    'General': 'hsl(0, 0%, 50%)',
+    'Health': 'hsl(120, 30%, 50%)',
+    'Fitness': 'hsl(210, 30%, 50%)',
+    'Learning': 'hsl(270, 30%, 50%)',
+    'Productivity': 'hsl(60, 30%, 50%)',
+    'Mindfulness': 'hsl(330, 30%, 50%)',
+    'Social': 'hsl(240, 30%, 50%)',
+    'Creative': 'hsl(30, 30%, 50%)',
+    'Financial': 'hsl(160, 30%, 50%)',
+    'Career': 'hsl(0, 30%, 50%)'
+  };
+  return colors[category] || colors['General'];
+};
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -112,6 +129,10 @@ const AnalyticsPanel = ({ open, onClose }) => {
             <div className="text-lg font-heading text-aura">Most Consistent Habit</div>
             <div className="text-2xl font-bold text-text">{stats.mostConsistentHabit || '--'}</div>
           </div>
+          <div className="bg-background/80 rounded-lg p-4 shadow">
+            <div className="text-lg font-heading text-aura">Goals Achieved</div>
+            <div className="text-2xl font-bold text-text">{stats.goalsAchieved || 0}</div>
+          </div>
           {barData && barData.labels.length > 0 && (
             <div className="bg-background/80 rounded-lg p-4 shadow">
               <div className="text-lg font-heading text-aura mb-2">Check-ins per Habit</div>
@@ -122,6 +143,25 @@ const AnalyticsPanel = ({ open, onClose }) => {
             <div className="bg-background/80 rounded-lg p-4 shadow">
               <div className="text-lg font-heading text-aura mb-2">Check-ins Over Time</div>
               <Line data={lineData} options={{ responsive: true, plugins: { legend: { display: false } }, scales: { x: { type: 'time', time: { unit: 'day' } } } }} />
+            </div>
+          )}
+          {stats.categoryStats && stats.categoryStats.length > 0 && (
+            <div className="bg-background/80 rounded-lg p-4 shadow">
+              <div className="text-lg font-heading text-aura mb-2">Habits by Category</div>
+              <div className="flex flex-col gap-2">
+                {stats.categoryStats.map((cat) => (
+                  <div key={cat.category} className="flex justify-between items-center p-2 bg-surface rounded">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getCategoryColor(cat.category) }}></div>
+                      <span className="text-text font-medium">{cat.category}</span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-aura">{cat.habitCount} habits</div>
+                      <div className="text-xs text-gray-400">{cat.totalCheckins} check-ins</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
