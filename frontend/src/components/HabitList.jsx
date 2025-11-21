@@ -22,7 +22,75 @@ const getCategoryColor = (category) => {
 
 const API_URL = 'http://localhost:4000/api';
 
-const HabitList = ({ refresh }) => {
+const STREAK_MILESTONES = [7, 15, 30, 90];
+
+export function MilestoneModal({ open, onClose, habits }) {
+  const getNextMilestone = (streak) => {
+    for (let ms of STREAK_MILESTONES) {
+      if (streak < ms) return ms;
+    }
+    return null;
+  };
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+      <div className="bg-surface p-8 rounded-xl shadow-2xl w-full max-w-lg relative animate-fade-in">
+        <button
+          className="absolute top-3 right-3 p-2 rounded-full bg-red-600 text-white hover:bg-red-800 transition"
+          onClick={onClose}
+          title="Close"
+        >
+          ✕
+        </button>
+        <h2 className="text-2xl font-heading text-primary mb-4 flex items-center gap-2">
+          <span>Milestones & Goals</span>
+          <span className="text-xl">🏆</span>
+        </h2>
+        <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto">
+          {habits.length === 0 ? (
+            <div className="text-aura">No habits to show.</div>
+          ) : (
+            habits.map(habit => {
+              const nextMs = getNextMilestone(habit.streak || 0);
+              return (
+                <div key={habit.id} className="bg-background rounded-lg p-4 shadow flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-heading text-primary text-lg">{habit.title}</span>
+                    <span className="text-2xl">🔥</span>
+                    <span className="text-aura font-bold">{habit.streak || 0}</span>
+                    {nextMs && (
+                      <span className="ml-2 px-2 py-1 rounded-full bg-yellow-300/30 text-yellow-800 text-xs font-bold flex items-center gap-1">
+                        Next: {nextMs}-day <span className="text-yellow-500">🏅</span>
+                      </span>
+                    )}
+                  </div>
+                  {habit.goalProgress && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-aura">Goal:</span>
+                      <div className="flex-1 bg-gray-700 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            habit.goalProgress.achieved ? 'bg-green-500' : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${Math.min(habit.goalProgress.current, 100)}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs text-gray-400">
+                        {habit.goalProgress.current}% / {habit.goalProgress.target}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const HabitList = ({ refresh, onUserUpdate }) => {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -36,6 +104,7 @@ const HabitList = ({ refresh }) => {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [milestoneModalOpen, setMilestoneModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchHabits = async () => {
@@ -80,6 +149,7 @@ const HabitList = ({ refresh }) => {
       });
       setHabits(habits.filter(h => h.id !== habit.id));
       toast.success(`Deleted habit "${habit.title}"`);
+      if (onUserUpdate) onUserUpdate();
     } catch (err) {
       toast.error('Failed to delete habit');
     }
@@ -120,6 +190,7 @@ const HabitList = ({ refresh }) => {
       } : h));
       setEditingHabit(null);
       toast.success('Habit updated!');
+      if (onUserUpdate) onUserUpdate();
     } catch (err) {
       setEditError('Failed to update habit');
       toast.error('Failed to update habit');
@@ -148,6 +219,7 @@ const HabitList = ({ refresh }) => {
       } else {
         toast.success(`Checked in for "${habit.title}"! 🔥`);
       }
+      if (onUserUpdate) onUserUpdate();
     } catch (err) {
       if (err.response?.data?.error === 'Already checked in today') {
         toast.error(`Already checked in today for "${habit.title}"`);
@@ -156,6 +228,44 @@ const HabitList = ({ refresh }) => {
       }
     }
   };
+
+  // Helper to get next milestone for a habit
+  const getNextMilestone = (streak) => {
+    for (let ms of STREAK_MILESTONES) {
+      if (streak < ms) return ms;
+    }
+    return null;
+  };
+
+  // Helper to get allowed goal periods
+  const getAllowedGoalPeriods = (freq) => {
+    if (freq === 'Weekly') return ['Monthly', 'Yearly'];
+    if (freq === 'Monthly') return ['Yearly'];
+    return ['Weekly', 'Monthly', 'Yearly'];
+  };
+
+  // Helper to get allowed goal periods and disabled states
+  const goalPeriodOptions = [
+    { value: 'Weekly', label: 'Weekly' },
+    { value: 'Monthly', label: 'Monthly' },
+    { value: 'Yearly', label: 'Yearly' },
+  ];
+
+  const getDisabledGoalPeriods = (freq) => {
+    if (freq === 'Weekly') return ['Weekly'];
+    if (freq === 'Monthly') return ['Weekly', 'Monthly'];
+    return [];
+  };
+
+  useEffect(() => {
+    const disabled = getDisabledGoalPeriods(editFrequency);
+    if (disabled.includes(editGoalPeriod)) {
+      // Pick the first enabled option
+      const firstEnabled = goalPeriodOptions.find(opt => !disabled.includes(opt.value));
+      setEditGoalPeriod(firstEnabled.value);
+    }
+    // eslint-disable-next-line
+  }, [editFrequency]);
 
   if (loading) return <div className="text-aura">Loading habits...</div>;
   if (error) return <div className="text-red-400">{error}</div>;
@@ -167,8 +277,19 @@ const HabitList = ({ refresh }) => {
 
   return (
     <>
-      <div className="flex flex-col gap-4 w-full max-w-md">
-        {/* Category Filter */}
+      {/* Remove milestone modal trigger button and its containing div. Replace with a simple heading. */}
+      <div className="mb-4">
+        <span className="text-lg font-heading text-aura">Your Habits</span>
+      </div>
+      {/* Milestone Modal (still needed for Dashboard, but not triggered here) */}
+      {milestoneModalOpen && (
+        <MilestoneModal
+          open={milestoneModalOpen}
+          onClose={() => setMilestoneModalOpen(false)}
+          habits={habits}
+        />
+      )}
+      {/* Category Filter */}
         <div className="flex items-center gap-2 mb-2">
           <span className="text-sm text-aura">Filter:</span>
           <select
@@ -191,7 +312,6 @@ const HabitList = ({ refresh }) => {
             onCheckin={handleCheckin}
           />
         ))}
-      </div>
       {/* Edit Modal */}
       {editingHabit && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
@@ -246,9 +366,9 @@ const HabitList = ({ refresh }) => {
                 value={editGoalPeriod}
                 onChange={e => setEditGoalPeriod(e.target.value)}
               >
-                <option value="Daily">Daily</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Monthly">Monthly</option>
+                {goalPeriodOptions.filter(opt => getAllowedGoalPeriods(editFrequency).includes(opt.value)).map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
             

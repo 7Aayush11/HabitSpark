@@ -20,7 +20,20 @@ const getCategoryColor = (category) => {
   return colors[category] || colors['General'];
 };
 
-const AddHabitForm = ({ onHabitAdded }) => {
+// Helper to get allowed goal periods
+const goalPeriodOptions = [
+  { value: 'Weekly', label: 'Weekly' },
+  { value: 'Monthly', label: 'Monthly' },
+  { value: 'Yearly', label: 'Yearly' },
+];
+
+const getAllowedGoalPeriods = (freq) => {
+  if (freq === 'Weekly') return ['Monthly', 'Yearly'];
+  if (freq === 'Monthly') return ['Yearly'];
+  return ['Weekly', 'Monthly', 'Yearly'];
+};
+
+const AddHabitForm = ({ onHabitAdded, onUserUpdate }) => {
   const [title, setTitle] = useState('');
   const [frequency, setFrequency] = useState('Daily');
   const [category, setCategory] = useState('General');
@@ -46,6 +59,14 @@ const AddHabitForm = ({ onHabitAdded }) => {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    const allowed = getAllowedGoalPeriods(frequency);
+    if (!allowed.includes(goalPeriod)) {
+      setGoalPeriod(allowed[0]);
+    }
+    // eslint-disable-next-line
+  }, [frequency]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -69,6 +90,7 @@ const AddHabitForm = ({ onHabitAdded }) => {
       setGoal('');
       setGoalPeriod('Weekly');
       if (onHabitAdded) onHabitAdded();
+      if (onUserUpdate) onUserUpdate();
     } catch (err) {
       console.log('Add habit error:', err, err.response);
       setError(err.response?.data?.error || err.message || 'Failed to add habit');
@@ -129,9 +151,9 @@ const AddHabitForm = ({ onHabitAdded }) => {
           value={goalPeriod}
           onChange={e => setGoalPeriod(e.target.value)}
         >
-          <option value="Daily">Daily</option>
-          <option value="Weekly">Weekly</option>
-          <option value="Monthly">Monthly</option>
+          {goalPeriodOptions.filter(opt => getAllowedGoalPeriods(frequency).includes(opt.value)).map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
         </select>
       </div>
       

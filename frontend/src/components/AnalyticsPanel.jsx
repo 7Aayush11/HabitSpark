@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Bar, Line } from 'react-chartjs-2';
+import { saveAs } from 'file-saver';
 
 // Category color mapping (same as HabitItem)
 const getCategoryColor = (category) => {
@@ -30,6 +31,7 @@ import {
   Tooltip,
   Legend,
   TimeScale,
+  Filler,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 
@@ -42,15 +44,24 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  TimeScale
+  TimeScale,
+  Filler
 );
 
 const API_URL = 'http://localhost:4000/api';
 
-const AnalyticsPanel = ({ open, onClose }) => {
+const AnalyticsPanel = ({ open, onClose, user }) => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [trendData, setTrendData] = useState(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const [trendError, setTrendError] = useState('');
+  const [trendStart, setTrendStart] = useState('');
+  const [trendEnd, setTrendEnd] = useState('');
+  const [daysData, setDaysData] = useState(null);
+  const [daysLoading, setDaysLoading] = useState(false);
+  const [daysError, setDaysError] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -63,6 +74,65 @@ const AnalyticsPanel = ({ open, onClose }) => {
         .catch(() => setError('Failed to fetch analytics'))
         .finally(() => setLoading(false));
     }
+  }, [open]);
+
+  // Set default date range: start = registration date (if available), end = today
+  useEffect(() => {
+    if (!open) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    setTrendEnd(prev => prev || todayStr);
+    if (user?.createdAt) {
+      const startStr = new Date(user.createdAt).toISOString().split('T')[0];
+      setTrendStart(prev => prev || startStr);
+    } else {
+      // Fallback to today if registration date is unavailable
+      setTrendStart(prev => prev || todayStr);
+    }
+  }, [open, user]);
+
+  // Calendar open helpers for date inputs
+  const startRef = useRef(null);
+  const endRef = useRef(null);
+  const openStartPicker = () => {
+    if (startRef.current?.showPicker) startRef.current.showPicker();
+    else startRef.current?.focus();
+  };
+  const openEndPicker = () => {
+    if (endRef.current?.showPicker) endRef.current.showPicker();
+    else endRef.current?.focus();
+  };
+
+  // Fetch trend data
+  useEffect(() => {
+    if (!open) return;
+    // Wait until default dates are set
+    if (!trendStart || !trendEnd) return;
+    setTrendLoading(true);
+    setTrendError('');
+    let url = `${API_URL}/habits/analytics/trends`;
+    const params = [];
+    if (trendStart) params.push(`start=${trendStart}`);
+    if (trendEnd) params.push(`end=${trendEnd}`);
+    if (params.length) url += '?' + params.join('&');
+    axios.get(url, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    })
+      .then(res => setTrendData(res.data.trends))
+      .catch(() => setTrendError('Failed to fetch trends'))
+      .finally(() => setTrendLoading(false));
+  }, [open, trendStart, trendEnd]);
+
+  // Fetch best/worst days
+  useEffect(() => {
+    if (!open) return;
+    setDaysLoading(true);
+    setDaysError('');
+    axios.get(`${API_URL}/habits/analytics/days`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    })
+      .then(res => setDaysData(res.data.stats))
+      .catch(() => setDaysError('Failed to fetch day-of-week stats'))
+      .finally(() => setDaysLoading(false));
   }, [open]);
 
   // Chart data
@@ -91,6 +161,46 @@ const AnalyticsPanel = ({ open, onClose }) => {
     ],
   } : null;
 
+  // Trend chart data
+  const trendChartData = trendData ? {
+    labels: trendData.map(d => d.date),
+    datasets: [
+      {
+        label: 'Check-ins',
+        data: trendData.map(d => d.count),
+        borderColor: 'rgba(16, 185, 129, 1)',
+        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+        fill: true,
+        tension: 0.3,
+      },
+    ],
+  } : null;
+
+  // Best/worst days chart data
+  const daysChartData = daysData ? {
+    labels: daysData.map(d => d.day),
+    datasets: [
+      {
+        label: 'Check-ins',
+        data: daysData.map(d => d.count),
+        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+      },
+    ],
+  } : null;
+
+  // Export CSV
+  const handleExport = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/habits/analytics/export`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        responseType: 'blob',
+      });
+      saveAs(res.data, 'habit_checkins.csv');
+    } catch (err) {
+      alert('Failed to export data');
+    }
+  };
+
   return (
     <motion.div
       initial={{ x: '100%' }}
@@ -107,6 +217,102 @@ const AnalyticsPanel = ({ open, onClose }) => {
         Close
       </button>
       <h2 className="text-3xl font-heading text-primary mb-6">Analytics</h2>
+      {stats && (
+        <div className="mb-6 bg-background rounded-xl p-4 shadow">
+          {(() => {
+            const totalCheckins = stats.totalCheckins || 0;
+            const level = Math.floor(totalCheckins / 10) + 1;
+            const progress = totalCheckins % 10;
+            const levelProgress = Math.round((progress / 10) * 100);
+            return (
+              <div className="flex flex-col items-center">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-2xl font-bold text-yellow-400">Lvl {level}</span>
+                  <span className="text-sm text-aura">Total Check-ins: {totalCheckins}</span>
+                </div>
+                <div className="w-full max-w-[280px] h-3 bg-gray-800 rounded-full mb-1 ring-2 ring-primary/30">
+                  <div
+                    className="h-3 rounded-full bg-gradient-to-r from-yellow-400 to-primary shadow-neon transition-all duration-500"
+                    style={{ width: `${levelProgress}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-400">{levelProgress}% to next level</div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+      {/* Advanced Analytics Controls */}
+      <div className="flex flex-col gap-2 mb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <label className="text-aura text-sm w-16">Start:</label>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={startRef}
+                  type="date"
+                  value={trendStart}
+                  onChange={e => setTrendStart(e.target.value)}
+                  className="px-2 py-1 rounded bg-background text-text border border-shadow text-sm w-[200px] min-w-[200px]"
+                />
+                <button
+                  type="button"
+                  onClick={openStartPicker}
+                  className="px-2 py-1 rounded bg-background text-text border border-shadow text-sm hover:bg-surface"
+                  title="Open calendar"
+                  aria-label="Open start date calendar"
+                >📅</button>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <label className="text-aura text-sm w-16">End:</label>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={endRef}
+                  type="date"
+                  value={trendEnd}
+                  onChange={e => setTrendEnd(e.target.value)}
+                  className="px-2 py-1 rounded bg-background text-text border border-shadow text-sm w-[200px] min-w-[200px]"
+                />
+                <button
+                  type="button"
+                  onClick={openEndPicker}
+                  className="px-2 py-1 rounded bg-background text-text border border-shadow text-sm hover:bg-surface"
+                  title="Open calendar"
+                  aria-label="Open end date calendar"
+                >📅</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <button
+            className="px-2 py-1 rounded bg-primary text-white font-heading shadow hover:bg-accent transition text-sm"
+            onClick={handleExport}
+          >
+            Export CSV
+          </button>
+        </div>
+      </div>
+      {/* Trend Chart */}
+      <div className="bg-background/80 rounded-lg p-4 shadow mb-4">
+        <div className="text-lg font-heading text-aura mb-2">Check-in Trends</div>
+        {trendLoading ? <div className="text-aura">Loading...</div>
+          : trendError ? <div className="text-red-400">{trendError}</div>
+          : trendChartData && trendChartData.labels.length > 0 ? (
+            <Line data={trendChartData} options={{ responsive: true, plugins: { legend: { display: false } }, scales: { x: { type: 'time', time: { unit: 'day' } } } }} />
+          ) : <div className="text-gray-400">No data</div>}
+      </div>
+      {/* Best/Worst Days Chart */}
+      <div className="bg-background/80 rounded-lg p-4 shadow mb-4">
+        <div className="text-lg font-heading text-aura mb-2">Best/Worst Days</div>
+        {daysLoading ? <div className="text-aura">Loading...</div>
+          : daysError ? <div className="text-red-400">{daysError}</div>
+          : daysChartData && daysChartData.labels.length > 0 ? (
+            <Bar data={daysChartData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
+          ) : <div className="text-gray-400">No data</div>}
+      </div>
       {loading ? (
         <div className="text-aura">Loading...</div>
       ) : error ? (
@@ -170,4 +376,4 @@ const AnalyticsPanel = ({ open, onClose }) => {
   );
 };
 
-export default AnalyticsPanel; 
+export default AnalyticsPanel;

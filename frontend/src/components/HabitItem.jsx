@@ -20,7 +20,7 @@ const getCategoryColor = (category) => {
 const HabitItem = ({ habit, onDelete, onEdit, onCheckin }) => {
   return (
     <div className="bg-surface/80 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between shadow gap-2">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-2">
         <div className="text-lg font-heading text-primary flex items-center gap-2">
           {habit.title}
           <span className="flex items-center ml-2">
@@ -28,28 +28,31 @@ const HabitItem = ({ habit, onDelete, onEdit, onCheckin }) => {
             <span className="ml-1 text-aura font-bold">{habit.streak || 0}</span>
           </span>
         </div>
-        <div className="flex flex-col gap-1">
+
+        {habit.goalProgress && (
+          <div className="flex items-center gap-2">
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  habit.goalProgress.achieved ? 'bg-green-500' : 'bg-blue-500'
+                }`}
+                style={{ width: `${Math.min(habit.goalProgress.current, 100)}%` }}
+              ></div>
+            </div>
+            <span className="text-xs text-gray-400 whitespace-nowrap">
+              {habit.goalProgress.current}% / {habit.goalProgress.target}%
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center gap-2">
           <div className="text-sm text-aura">{habit.frequency}</div>
           <div className={`text-xs px-2 py-1 rounded-full font-medium ${getCategoryColor(habit.category || 'General')}`}>
             {habit.category || 'General'}
           </div>
-          {habit.goalProgress && (
-            <div className="flex items-center gap-1 mt-1">
-              <div className="flex-1 bg-gray-700 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    habit.goalProgress.achieved ? 'bg-green-500' : 'bg-blue-500'
-                  }`}
-                  style={{ width: `${Math.min(habit.goalProgress.current, 100)}%` }}
-                ></div>
-              </div>
-              <span className="text-xs text-gray-400">
-                {habit.goalProgress.current}% / {habit.goalProgress.target}%
-              </span>
-            </div>
-          )}
         </div>
       </div>
+
       <div className="flex gap-2 mt-2 md:mt-0">
         <button
           className="px-3 py-1 rounded bg-green-600 text-white font-heading shadow hover:bg-green-700 transition"
@@ -74,4 +77,4 @@ const HabitItem = ({ habit, onDelete, onEdit, onCheckin }) => {
   );
 };
 
-export default HabitItem; 
+export default HabitItem;

@@ -5,7 +5,7 @@ import axios from 'axios';
 const API_URL = 'http://localhost:4000/api';
 
 const LoginForm = ({ onBack, onSuccess }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -17,7 +17,7 @@ const LoginForm = ({ onBack, onSuccess }) => {
     setSuccess('');
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/auth/login`, { email, password });
+      const res = await axios.post(`${API_URL}/auth/login`, { username, password });
       localStorage.setItem('token', res.data.token);
       setSuccess('Logged in successfully!');
       setError('');
@@ -36,11 +36,11 @@ const LoginForm = ({ onBack, onSuccess }) => {
       <h2 className="text-4xl font-heading mb-4">Login</h2>
       <form onSubmit={handleLogin} className="flex flex-col gap-4 w-full max-w-xs bg-surface p-8 rounded-xl shadow-lg">
         <input
-          type="email"
-          placeholder="Email"
+          type="text"
+          placeholder="Username"
           className="px-4 py-2 rounded bg-background text-text border border-shadow focus:outline-none focus:ring-2 focus:ring-primary"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
+          value={username}
+          onChange={e => setUsername(e.target.value)}
           required
         />
         <input

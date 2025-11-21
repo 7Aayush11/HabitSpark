@@ -7,6 +7,9 @@ import {
   checkinHabitController,
   getAnalytics,
   getCategories,
+  getCheckinTrends,
+  getDayOfWeekStats,
+  exportCheckins,
 } from '../controllers/habit.controller.js';
 import { verifyToken } from '../middlewares/verifyToken.js';
 
@@ -21,5 +24,8 @@ router.put('/:id', updateHabit);
 router.delete('/:id', deleteHabit);
 router.post('/:id/checkin', checkinHabitController);
 router.get('/analytics', getAnalytics);
+router.get('/analytics/trends', getCheckinTrends);
+router.get('/analytics/days', getDayOfWeekStats);
+router.get('/analytics/export', exportCheckins);
 
 export default router;
