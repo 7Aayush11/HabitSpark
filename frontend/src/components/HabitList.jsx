@@ -206,8 +206,12 @@ const HabitList = ({ refresh, onUserUpdate }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      // Update habit with new streak
-      const updatedHabits = habits.map(h => h.id === habit.id ? { ...h, streak: res.data.streak } : h);
+      // Update habit with new streak and goal progress (if provided)
+      const updatedHabits = habits.map(h =>
+        h.id === habit.id
+          ? { ...h, streak: res.data.streak, goalProgress: res.data.goalProgress ?? h.goalProgress }
+          : h
+      );
       setHabits(updatedHabits);
       
       // Check if goal was achieved

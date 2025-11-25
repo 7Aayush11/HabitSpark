@@ -96,12 +96,15 @@ export const updateHabit = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, frequency, category, goal, goalPeriod } = req.body;
-
+    // Security: ensure habit belongs to current user
+    const existing = await prisma.habit.findFirst({ where: { id, userId: req.userId } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Habit not found or unauthorized' });
+    }
     const habit = await prisma.habit.update({
       where: { id },
       data: { title, frequency, category, goal: goal ? parseInt(goal) : null, goalPeriod },
     });
-
     res.json(habit);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update habit' });
@@ -111,7 +114,11 @@ export const updateHabit = async (req, res) => {
 export const deleteHabit = async (req, res) => {
   try {
     const { id } = req.params;
-
+    // Security: ensure habit belongs to current user
+    const existing = await prisma.habit.findFirst({ where: { id, userId: req.userId } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Habit not found or unauthorized' });
+    }
     await prisma.habit.delete({ where: { id } });
     res.json({ success: true });
   } catch (err) {
@@ -124,6 +131,12 @@ export const checkinHabitController = async (req, res) => {
     const habitId = req.params.id;
     const userId = req.userId;
     const today = startOfDay(new Date());
+
+    // Security: ensure habit belongs to current user
+    const ownerHabit = await prisma.habit.findFirst({ where: { id: habitId, userId } });
+    if (!ownerHabit) {
+      return res.status(404).json({ error: 'Habit not found or unauthorized' });
+    }
 
     // Check if already checked in today
     const existing = await prisma.checkin.findFirst({
@@ -138,15 +151,17 @@ export const checkinHabitController = async (req, res) => {
       data: { habitId, date: today },
     });
 
-    // Calculate streak
-    const checkins = await prisma.checkin.findMany({
-      where: { habitId },
-      orderBy: { date: 'desc' },
+    // Calculate streak and goal progress from updated habit
+    const habit = await prisma.habit.findUnique({
+      where: { id: habitId },
+      include: { checkins: true },
     });
 
+    // Streak calculation
+    const orderedCheckins = habit.checkins.sort((a, b) => b.date - a.date);
     let streak = 0;
     let day = today;
-    for (const checkin of checkins) {
+    for (const checkin of orderedCheckins) {
       if (isSameDay(checkin.date, day)) {
         streak++;
         day = subDays(day, 1);
@@ -155,7 +170,27 @@ export const checkinHabitController = async (req, res) => {
       }
     }
 
-    res.json({ success: true, streak });
+    // Goal progress calculation (mirror getHabits logic)
+    let goalProgress = null;
+    if (habit.goal) {
+      const periodStart = habit.goalPeriod === 'Daily' ? startOfDay(today) :
+                         habit.goalPeriod === 'Weekly' ? startOfDay(subDays(today, 7)) :
+                         startOfDay(subDays(today, 30));
+
+      const periodCheckins = habit.checkins.filter(c => new Date(c.date) >= periodStart).length;
+      const totalDays = habit.goalPeriod === 'Daily' ? 1 :
+                       habit.goalPeriod === 'Weekly' ? 7 : 30;
+      const completionRate = (periodCheckins / totalDays) * 100;
+      goalProgress = {
+        current: Math.round(completionRate),
+        target: habit.goal,
+        achieved: completionRate >= habit.goal,
+        periodCheckins,
+        totalDays,
+      };
+    }
+
+    res.json({ success: true, streak, goalProgress });
   } catch (err) {
     res.status(500).json({ error: 'Failed to check in' });
   }

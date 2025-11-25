@@ -217,31 +217,7 @@ const AnalyticsPanel = ({ open, onClose, user }) => {
         Close
       </button>
       <h2 className="text-3xl font-heading text-primary mb-6">Analytics</h2>
-      {stats && (
-        <div className="mb-6 bg-background rounded-xl p-4 shadow">
-          {(() => {
-            const totalCheckins = stats.totalCheckins || 0;
-            const level = Math.floor(totalCheckins / 10) + 1;
-            const progress = totalCheckins % 10;
-            const levelProgress = Math.round((progress / 10) * 100);
-            return (
-              <div className="flex flex-col items-center">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-2xl font-bold text-yellow-400">Lvl {level}</span>
-                  <span className="text-sm text-aura">Total Check-ins: {totalCheckins}</span>
-                </div>
-                <div className="w-full max-w-[280px] h-3 bg-gray-800 rounded-full mb-1 ring-2 ring-primary/30">
-                  <div
-                    className="h-3 rounded-full bg-gradient-to-r from-yellow-400 to-primary shadow-neon transition-all duration-500"
-                    style={{ width: `${levelProgress}%` }}
-                  ></div>
-                </div>
-                <div className="text-xs text-gray-400">{levelProgress}% to next level</div>
-              </div>
-            );
-          })()}
-        </div>
-      )}
+      {/* Level slider removed per request */}
       {/* Advanced Analytics Controls */}
       <div className="flex flex-col gap-2 mb-4">
         <div className="flex items-start justify-between gap-4">
@@ -345,12 +321,7 @@ const AnalyticsPanel = ({ open, onClose, user }) => {
               <Bar data={barData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
             </div>
           )}
-          {lineData && lineData.labels.length > 0 && (
-            <div className="bg-background/80 rounded-lg p-4 shadow">
-              <div className="text-lg font-heading text-aura mb-2">Check-ins Over Time</div>
-              <Line data={lineData} options={{ responsive: true, plugins: { legend: { display: false } }, scales: { x: { type: 'time', time: { unit: 'day' } } } }} />
-            </div>
-          )}
+          {/* Removed duplicate time-series chart: Check-ins Over Time */}
           {stats.categoryStats && stats.categoryStats.length > 0 && (
             <div className="bg-background/80 rounded-lg p-4 shadow">
               <div className="text-lg font-heading text-aura mb-2">Habits by Category</div>

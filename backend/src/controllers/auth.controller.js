@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 
 export const registerUser = async (req, res) => {
   try {
-    console.log('Register request body:', req.body);
     const { username, password } = req.body;
     
     if (!username || !password) {
@@ -18,7 +17,7 @@ export const registerUser = async (req, res) => {
     if (existing) return res.status(400).json({ error: 'User already exists' });
 
     const hashed = await bcrypt.hash(password, 10);
-    console.log('Creating user with username:', username);
+    // Avoid logging sensitive fields
     
     const user = await prisma.user.create({
       data: { username, password: hashed }

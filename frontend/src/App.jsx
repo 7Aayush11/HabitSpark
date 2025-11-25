@@ -9,6 +9,7 @@ import LoginForm from './components/LoginForm'
 import RegisterForm from './components/RegisterForm'
 import Dashboard from './components/Dashboard'
 import Background from './components/Background'
+import Footer from './components/Footer'
 import { Toaster } from 'react-hot-toast'
 
 const API_URL = 'http://localhost:4000/api' // Adjust port if needed
@@ -36,6 +37,7 @@ function App() {
         {page === 'register' && <RegisterForm key="register" onBack={() => setPage('landing')} onSuccess={handleAuthSuccess} />}
         {page === 'dashboard' && <Dashboard key="dashboard" onLogout={handleLogout} />}
       </AnimatePresence>
+      <Footer linkedinUrl={"https://www.linkedin.com"} />
     </>
   )
 }
