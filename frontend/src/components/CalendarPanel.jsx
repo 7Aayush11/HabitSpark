@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, parseISO, differenceInCalendarDays } from 'date-fns';
+import TitleText from './TitleText';
+import { API_URL } from '../api/config';
 
-const API_URL = 'http://localhost:4000/api';
 
 const STREAK_MILESTONES = [7, 15, 30, 90];
 
@@ -108,7 +109,9 @@ const CalendarPanel = ({ open, onClose }) => {
               onClick={() => setDropdownOpen(!dropdownOpen)}
             >
               <span>
-                {selectedHabitId === 'ALL' ? 'All Habits' : (habits.find(h => h.id === selectedHabitId)?.title || 'Select a habit')}
+                {selectedHabitId === 'ALL' ? 'All Habits' : (
+                  <TitleText text={habits.find(h => h.id === selectedHabitId)?.title || 'Select a habit'} />
+                )}
               </span>
               <span className="text-primary">▼</span>
             </button>
@@ -140,7 +143,7 @@ const CalendarPanel = ({ open, onClose }) => {
                           setDropdownOpen(false);
                         }}
                       >
-                        {habit.title}
+                        <TitleText text={habit.title} />
                       </button>
                     ))}
                   </>

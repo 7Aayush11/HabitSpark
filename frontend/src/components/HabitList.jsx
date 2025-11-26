@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import HabitItem from './HabitItem';
 import toast from 'react-hot-toast';
+import { decryptText, encryptText, isCiphertext } from '../utils/crypto';
+import { API_URL } from '../api/config';
 
 // Category color mapping
 const getCategoryColor = (category) => {
@@ -20,7 +22,6 @@ const getCategoryColor = (category) => {
   return colors[category] || colors['General'];
 };
 
-const API_URL = 'http://localhost:4000/api';
 
 const STREAK_MILESTONES = [7, 15, 30, 90];
 
@@ -90,7 +91,7 @@ export function MilestoneModal({ open, onClose, habits }) {
   );
 }
 
-const HabitList = ({ refresh, onUserUpdate }) => {
+const HabitList = ({ refresh, onUserUpdate, onHabitsRefresh }) => {
   const [habits, setHabits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -141,23 +142,26 @@ const HabitList = ({ refresh, onUserUpdate }) => {
   }, []);
 
   const handleDelete = async (habit) => {
-    if (!window.confirm(`Delete habit "${habit.title}"?`)) return;
+    const titlePlain = isCiphertext(habit.title) ? await decryptText(habit.title) : habit.title;
+    if (!window.confirm(`Delete habit "${titlePlain}"?`)) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_URL}/habits/${habit.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setHabits(habits.filter(h => h.id !== habit.id));
-      toast.success(`Deleted habit "${habit.title}"`);
+      toast.success(`Deleted habit "${titlePlain}"`);
       if (onUserUpdate) onUserUpdate();
+      if (onHabitsRefresh) onHabitsRefresh();
     } catch (err) {
       toast.error('Failed to delete habit');
     }
   };
 
-  const handleEdit = (habit) => {
+  const handleEdit = async (habit) => {
     setEditingHabit(habit);
-    setEditTitle(habit.title);
+    const titlePlain = isCiphertext(habit.title) ? await decryptText(habit.title) : habit.title;
+    setEditTitle(titlePlain);
     setEditFrequency(habit.frequency);
     setEditCategory(habit.category || 'General');
     setEditGoal(habit.goal ? habit.goal.toString() : '');
@@ -171,8 +175,9 @@ const HabitList = ({ refresh, onUserUpdate }) => {
     setEditError('');
     try {
       const token = localStorage.getItem('token');
+      const encryptedTitle = await encryptText(editTitle.trim());
       await axios.put(`${API_URL}/habits/${editingHabit.id}`, {
-        title: editTitle.trim(),
+        title: encryptedTitle,
         frequency: editFrequency.trim(),
         category: editCategory.trim(),
         goal: editGoal ? parseInt(editGoal) : null,
@@ -182,7 +187,7 @@ const HabitList = ({ refresh, onUserUpdate }) => {
       });
       setHabits(habits.map(h => h.id === editingHabit.id ? { 
         ...h, 
-        title: editTitle, 
+        title: encryptedTitle, 
         frequency: editFrequency, 
         category: editCategory,
         goal: editGoal ? parseInt(editGoal) : null,
@@ -191,6 +196,7 @@ const HabitList = ({ refresh, onUserUpdate }) => {
       setEditingHabit(null);
       toast.success('Habit updated!');
       if (onUserUpdate) onUserUpdate();
+      if (onHabitsRefresh) onHabitsRefresh();
     } catch (err) {
       setEditError('Failed to update habit');
       toast.error('Failed to update habit');
@@ -216,17 +222,20 @@ const HabitList = ({ refresh, onUserUpdate }) => {
       
       // Check if goal was achieved
       const updatedHabit = updatedHabits.find(h => h.id === habit.id);
+      const titlePlain = isCiphertext(habit.title) ? await decryptText(habit.title) : habit.title;
       if (updatedHabit?.goalProgress?.achieved && !habit.goalProgress?.achieved) {
-        toast.success(`🎉 Goal achieved for "${habit.title}"! You've reached ${updatedHabit.goalProgress.target}%!`, {
+        toast.success(`🎉 Goal achieved for "${titlePlain}"! You've reached ${updatedHabit.goalProgress.target}%!`, {
           duration: 4000,
         });
       } else {
-        toast.success(`Checked in for "${habit.title}"! 🔥`);
+        toast.success(`Checked in for "${titlePlain}"! 🔥`);
       }
       if (onUserUpdate) onUserUpdate();
+      if (onHabitsRefresh) onHabitsRefresh();
     } catch (err) {
       if (err.response?.data?.error === 'Already checked in today') {
-        toast.error(`Already checked in today for "${habit.title}"`);
+        const titlePlain = isCiphertext(habit.title) ? await decryptText(habit.title) : habit.title;
+        toast.error(`Already checked in today for "${titlePlain}"`);
       } else {
         toast.error('Failed to check in');
       }

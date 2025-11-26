@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import TitleText from './TitleText';
 
 // Category color mapping
 const getCategoryColor = (category) => {
@@ -22,7 +22,7 @@ const HabitItem = ({ habit, onDelete, onEdit, onCheckin }) => {
     <div className="bg-surface/80 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between shadow gap-2">
       <div className="flex flex-col gap-2">
         <div className="text-lg font-heading text-primary flex items-center gap-2">
-          {habit.title}
+          <TitleText text={habit.title} />
           <span className="flex items-center ml-2">
             <span className="text-2xl">🔥</span>
             <span className="ml-1 text-aura font-bold">{habit.streak || 0}</span>

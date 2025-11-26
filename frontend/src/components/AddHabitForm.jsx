@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-
-const API_URL = 'http://localhost:4000/api';
+import { encryptText } from '../utils/crypto';
+import { API_URL } from '../api/config';
 
 // Category color mapping
 const getCategoryColor = (category) => {
@@ -74,8 +74,9 @@ const AddHabitForm = ({ onHabitAdded, onUserUpdate }) => {
     setSuccess('');
     try {
       const token = localStorage.getItem('token');
+      const encryptedTitle = await encryptText(title.trim());
       await axios.post(`${API_URL}/habits`, { 
-        title: title.trim(), 
+        title: encryptedTitle, 
         frequency: frequency.trim(),
         category: category.trim(),
         goal: goal ? parseInt(goal) : null,

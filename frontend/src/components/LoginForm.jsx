@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-
-const API_URL = 'http://localhost:4000/api';
+import { API_URL } from '../api/config';
 
 const LoginForm = ({ onBack, onSuccess }) => {
   const [username, setUsername] = useState('');

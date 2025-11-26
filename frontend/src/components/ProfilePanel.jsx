@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-
-const API_URL = 'http://localhost:4000/api';
+import { API_URL } from '../api/config';
 
 const quotes = [
   "Level up your life, one habit at a time!",

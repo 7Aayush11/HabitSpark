@@ -21,7 +21,7 @@ const Landing = ({ onNavigate }) => (
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.2 }}
       >
-        Level up your life. Track habits. Earn aura points. Made by <span className="text-accent font-bold">Aayush</span>.
+        Level up your life. Track habits. Earn aura points. Made with <span className="text-accent font-bold">❤️</span>.
       </motion.p>
       <div className="flex gap-6">
         <motion.button

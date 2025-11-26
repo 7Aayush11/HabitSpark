@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Bar, Line } from 'react-chartjs-2';
 import { saveAs } from 'file-saver';
+import { decryptText, isCiphertext } from '../utils/crypto';
+import { API_URL } from '../api/config';
 
 // Category color mapping (same as HabitItem)
 const getCategoryColor = (category) => {
@@ -48,10 +50,12 @@ ChartJS.register(
   Filler
 );
 
-const API_URL = 'http://localhost:4000/api';
+
 
 const AnalyticsPanel = ({ open, onClose, user }) => {
   const [stats, setStats] = useState(null);
+  const [decryptedLabels, setDecryptedLabels] = useState(null);
+  const [mostConsistentDecrypted, setMostConsistentDecrypted] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [trendData, setTrendData] = useState(null);
@@ -135,9 +139,35 @@ const AnalyticsPanel = ({ open, onClose, user }) => {
       .finally(() => setDaysLoading(false));
   }, [open]);
 
+  // Decrypt titles used in analytics when stats change
+  useEffect(() => {
+    const run = async () => {
+      if (!stats) {
+        setDecryptedLabels(null);
+        setMostConsistentDecrypted(null);
+        return;
+      }
+      if (stats.checkinsPerHabit && stats.checkinsPerHabit.length) {
+        const labels = await Promise.all(stats.checkinsPerHabit.map(async h => (
+          isCiphertext(h.title) ? await decryptText(h.title) : h.title
+        )));
+        setDecryptedLabels(labels);
+      } else {
+        setDecryptedLabels(null);
+      }
+      if (stats.mostConsistentHabit) {
+        const plain = isCiphertext(stats.mostConsistentHabit) ? await decryptText(stats.mostConsistentHabit) : stats.mostConsistentHabit;
+        setMostConsistentDecrypted(plain);
+      } else {
+        setMostConsistentDecrypted(null);
+      }
+    };
+    run();
+  }, [stats]);
+
   // Chart data
   const barData = stats && stats.checkinsPerHabit ? {
-    labels: stats.checkinsPerHabit.map(h => h.title),
+    labels: decryptedLabels || stats.checkinsPerHabit.map(h => h.title),
     datasets: [
       {
         label: 'Check-ins per Habit',
@@ -309,7 +339,7 @@ const AnalyticsPanel = ({ open, onClose, user }) => {
           </div>
           <div className="bg-background/80 rounded-lg p-4 shadow">
             <div className="text-lg font-heading text-aura">Most Consistent Habit</div>
-            <div className="text-2xl font-bold text-text">{stats.mostConsistentHabit || '--'}</div>
+            <div className="text-2xl font-bold text-text">{mostConsistentDecrypted || stats.mostConsistentHabit || '--'}</div>
           </div>
           <div className="bg-background/80 rounded-lg p-4 shadow">
             <div className="text-lg font-heading text-aura">Goals Achieved</div>

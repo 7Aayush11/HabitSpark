@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
-
-const API_URL = 'http://localhost:4000/api';
+import { API_URL } from '../api/config';
 
 const BugReportForm = ({ open, onClose }) => {
   const [description, setDescription] = useState('');

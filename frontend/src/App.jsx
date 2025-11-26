@@ -1,9 +1,6 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { AnimatePresence } from 'framer-motion'
 import './App.css'
-import axios from 'axios'
 import Landing from './components/Landing'
 import LoginForm from './components/LoginForm'
 import RegisterForm from './components/RegisterForm'
@@ -12,7 +9,7 @@ import Background from './components/Background'
 import Footer from './components/Footer'
 import { Toaster } from 'react-hot-toast'
 
-const API_URL = 'http://localhost:4000/api' // Adjust port if needed
+// API base URL is configured via `VITE_API_URL` in `src/api/config`
 
 function App() {
   const [page, setPage] = useState(() => {
@@ -37,7 +34,7 @@ function App() {
         {page === 'register' && <RegisterForm key="register" onBack={() => setPage('landing')} onSuccess={handleAuthSuccess} />}
         {page === 'dashboard' && <Dashboard key="dashboard" onLogout={handleLogout} />}
       </AnimatePresence>
-      <Footer linkedinUrl={"https://www.linkedin.com"} />
+      <Footer linkedinUrl={"https://www.linkedin.com/in/aayush-nisar-b71715184"} />
     </>
   )
 }

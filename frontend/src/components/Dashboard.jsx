@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import HabitList, { MilestoneModal } from './HabitList';
 import AddHabitForm from './AddHabitForm';
 import AnalyticsPanel from './AnalyticsPanel';
 import axios from 'axios';
-import ProfileCard from './ProfileCard';
 import ProfilePanel from './ProfilePanel';
 import CalendarPanel from './CalendarPanel';
+import { API_URL } from '../api/config';
 
 function Dashboard({ onLogout }) {
   const [user, setUser] = useState(null);
@@ -25,7 +24,7 @@ function Dashboard({ onLogout }) {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:4000/api/user/me', {
+      const res = await axios.get(`${API_URL}/user/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data);
@@ -45,7 +44,7 @@ function Dashboard({ onLogout }) {
     const fetchHabits = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:4000/api/habits', {
+        const res = await axios.get(`${API_URL}/habits`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setHabits(res.data);
@@ -133,7 +132,7 @@ function Dashboard({ onLogout }) {
           <div className="w-full flex flex-col items-center justify-center mt-8">
             <h3 className="text-2xl font-heading mb-4 text-text text-center">Your Habits</h3>
             <AddHabitForm onHabitAdded={() => setRefresh(r => r + 1)} onUserUpdate={fetchUser} />
-            <HabitList refresh={refresh} onUserUpdate={fetchUser} />
+            <HabitList refresh={refresh} onUserUpdate={fetchUser} onHabitsRefresh={() => setRefresh(r => r + 1)} />
           </div>
         </div>
       </div>

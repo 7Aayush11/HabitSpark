@@ -12,9 +12,26 @@ dotenv.config();
 const app = express();
 // Security: Helmet headers
 app.use(helmet());
-// Security: CORS restricted to client URL if provided
-const allowedOrigin = process.env.CLIENT_URL || '*';
-app.use(cors({ origin: allowedOrigin, credentials: true }));
+// Security: CORS restricted to whitelist of allowed origins
+const allowedOrigins = [];
+if (process.env.CLIENT_URL) {
+  allowedOrigins.push(process.env.CLIENT_URL);
+}
+// Local dev origins
+allowedOrigins.push('http://localhost:5173');
+allowedOrigins.push('http://localhost:3000');
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests (no origin) and whitelisted origins
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 // Security: limit JSON body size
 app.use(express.json({ limit: '1mb' }));
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import BugReportForm from './BugReportForm';
 
 const Footer = ({ linkedinUrl }) => {
