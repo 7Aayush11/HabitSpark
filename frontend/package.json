@@ -11,6 +11,8 @@
     "start": "concurrently \"npm run dev\" \"cd ../backend/src && nodemon index.js\""
   },
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
     "axios": "^1.10.0",
     "chart.js": "^4.5.0",
     "chartjs-adapter-date-fns": "^3.0.0",

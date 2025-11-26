@@ -8,6 +8,8 @@ import Dashboard from './components/Dashboard'
 import Background from './components/Background'
 import Footer from './components/Footer'
 import { Toaster } from 'react-hot-toast'
+import SpeedInsights from "@vercel/speed-insights/react"
+import Analytics from "@vercel/analytics/react"
 
 // API base URL is configured via `VITE_API_URL` in `src/api/config`
 
