@@ -118,6 +118,9 @@ const HabitList = ({ refresh, onUserUpdate, onHabitsRefresh }) => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setHabits(res.data);
+        // One-time normalization: if titles are client-encrypted and decryptable,
+        // persist them back to plaintext so they are visible across devices.
+        normalizeEncryptedTitles(res.data).catch(() => {});
       } catch (err) {
         setError('Failed to fetch habits');
       } finally {
@@ -126,6 +129,36 @@ const HabitList = ({ refresh, onUserUpdate, onHabitsRefresh }) => {
     };
     fetchHabits();
   }, [refresh]);
+
+  const normalizeEncryptedTitles = async (items) => {
+    const alreadyRun = localStorage.getItem('normalizedTitlesV1');
+    if (alreadyRun === 'true') return;
+    const token = localStorage.getItem('token');
+    for (const h of items) {
+      if (isCiphertext(h.title)) {
+        const plain = await decryptText(h.title);
+        // Only update if decryption succeeded (not lock emoji)
+        if (plain && plain !== '🔒') {
+          try {
+            await axios.put(`${API_URL}/habits/${h.id}`, {
+              title: plain.trim(),
+              frequency: h.frequency,
+              category: h.category || 'General',
+              goal: h.goal || null,
+              goalPeriod: h.goalPeriod || 'Weekly',
+            }, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            // Update local state immediately
+            setHabits(prev => prev.map(x => x.id === h.id ? { ...x, title: plain.trim() } : x));
+          } catch (e) {
+            // ignore per-item errors
+          }
+        }
+      }
+    }
+    localStorage.setItem('normalizedTitlesV1', 'true');
+  };
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -176,9 +209,8 @@ const HabitList = ({ refresh, onUserUpdate, onHabitsRefresh }) => {
     setEditError('');
     try {
       const token = localStorage.getItem('token');
-      const encryptedTitle = await encryptText(editTitle.trim());
       await axios.put(`${API_URL}/habits/${editingHabit.id}`, {
-        title: encryptedTitle,
+        title: editTitle.trim(),
         frequency: editFrequency.trim(),
         category: editCategory.trim(),
         goal: editGoal ? parseInt(editGoal) : null,
@@ -188,7 +220,7 @@ const HabitList = ({ refresh, onUserUpdate, onHabitsRefresh }) => {
       });
       setHabits(habits.map(h => h.id === editingHabit.id ? { 
         ...h, 
-        title: encryptedTitle, 
+        title: editTitle.trim(), 
         frequency: editFrequency, 
         category: editCategory,
         goal: editGoal ? parseInt(editGoal) : null,

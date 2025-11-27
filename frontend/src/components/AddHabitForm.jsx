@@ -74,9 +74,8 @@ const AddHabitForm = ({ onHabitAdded, onUserUpdate }) => {
     setSuccess('');
     try {
       const token = localStorage.getItem('token');
-      const encryptedTitle = await encryptText(title.trim());
       await axios.post(`${API_URL}/habits`, { 
-        title: encryptedTitle, 
+        title: title.trim(), 
         frequency: frequency.trim(),
         category: category.trim(),
         goal: goal ? parseInt(goal) : null,
