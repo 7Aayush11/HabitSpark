@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import HabitItem from './HabitItem';
 import toast from 'react-hot-toast';
+import TitleText from './TitleText';
 import { decryptText, encryptText, isCiphertext } from '../utils/crypto';
 import { API_URL } from '../api/config';
 
@@ -56,7 +57,7 @@ export function MilestoneModal({ open, onClose, habits }) {
               return (
                 <div key={habit.id} className="bg-background rounded-lg p-4 shadow flex flex-col gap-1">
                   <div className="flex items-center gap-2">
-                    <span className="font-heading text-primary text-lg">{habit.title}</span>
+                    <TitleText text={habit.title} className="font-heading text-primary text-lg" />
                     <span className="text-2xl">🔥</span>
                     <span className="text-aura font-bold">{habit.streak || 0}</span>
                     {nextMs && (
